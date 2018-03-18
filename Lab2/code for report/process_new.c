@@ -16,7 +16,7 @@ int main()
 	int cpid;/* 保存子进程的id号 */
 	int ppid;/* 保存父进程的id号 */
 	char buf[256];
-  	char *argv[] = {"vi",NULL,NULL};
+  	char *argv[] = {"/usr/bin/vi","process.txt",NULL};
 	ppid=getpid();//得到近程号
 	cpid=fork();
   
@@ -30,8 +30,9 @@ int main()
 		/* 使子进程所在的进程组成为前台进程组，然后执行vi */
 		setpgid(0,0);
 		tcsetpgrp(0,getpid());
-		execvp("usr/bin/vi", argv);
-		exit(-1);
+		execvp(argv[0], argv);
+		// return 0;
+		// exit(-1);
 	}
    
 	fprintf(stdout,"ID(parent)=%d\n",ppid);
