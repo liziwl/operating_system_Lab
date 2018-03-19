@@ -38,9 +38,6 @@ PATH: /bin
 PATH: /usr/games
 PATH: /usr/local/games
 PATH: /snap/bin
-PATH: /usr/lib/jvm/java-8-oracle/bin
-PATH: /usr/lib/jvm/java-8-oracle/db/bin
-PATH: /usr/lib/jvm/java-8-oracle/jre/bin
 
 
 ## ----------- ##
@@ -467,8 +464,8 @@ configure:8641: checking whether stripping libraries is possible
 configure:8646: result: yes
 configure:8744: checking for shl_load
 configure:8744: gcc -o conftest -g -O2   conftest.c  >&5
-/tmp/cccwjTRn.o: In function `main':
-/home/arthur/OS/bochs-2.6.7/conftest.c:54: undefined reference to `shl_load'
+/tmp/cc5isnia.o: In function `main':
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:54: undefined reference to `shl_load'
 collect2: error: ld returned 1 exit status
 configure:8744: $? = 1
 configure: failed program was:
@@ -573,8 +570,8 @@ configure: failed program was:
 configure:8782: result: no
 configure:8787: checking for dlopen
 configure:8787: gcc -o conftest -g -O2   conftest.c  >&5
-/tmp/ccal1Kow.o: In function `main':
-/home/arthur/OS/bochs-2.6.7/conftest.c:54: undefined reference to `dlopen'
+/tmp/cc7F1Ztg.o: In function `main':
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:54: undefined reference to `dlopen'
 collect2: error: ld returned 1 exit status
 configure:8787: $? = 1
 configure: failed program was:
@@ -1786,8 +1783,8 @@ configure:20726: $? = 0
 configure:20726: result: yes
 configure:20738: checking for strrev
 configure:20738: gcc -o conftest -g -O2   conftest.c  >&5
-/tmp/cchUP9nY.o: In function `main':
-/home/arthur/OS/bochs-2.6.7/conftest.c:109: undefined reference to `strrev'
+/tmp/ccrPuwCA.o: In function `main':
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:109: undefined reference to `strrev'
 collect2: error: ld returned 1 exit status
 configure:20738: $? = 1
 configure: failed program was:
@@ -1906,8 +1903,8 @@ configure: failed program was:
 configure:20738: result: no
 configure:20750: checking for stricmp
 configure:20750: gcc -o conftest -g -O2   conftest.c  >&5
-/tmp/cckrrRIR.o: In function `main':
-/home/arthur/OS/bochs-2.6.7/conftest.c:109: undefined reference to `stricmp'
+/tmp/cc9P5SnH.o: In function `main':
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:109: undefined reference to `stricmp'
 collect2: error: ld returned 1 exit status
 configure:20750: $? = 1
 configure: failed program was:
@@ -2067,8 +2064,8 @@ configure:20880: $? = 0
 configure:20880: result: yes
 configure:20892: checking for fseek64
 configure:20892: gcc -o conftest -g -O2   conftest.c  >&5
-/tmp/ccJfHYmm.o: In function `main':
-/home/arthur/OS/bochs-2.6.7/conftest.c:122: undefined reference to `fseek64'
+/tmp/ccQUiG2x.o: In function `main':
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:122: undefined reference to `fseek64'
 collect2: error: ld returned 1 exit status
 configure:20892: $? = 1
 configure: failed program was:
@@ -3825,11 +3822,11 @@ conftest.c:168:8: warning: null argument where non-null required (argument 1) [-
         pthread_create(0,0,0,0); pthread_cleanup_pop(0);
         ^
 conftest.c:168:8: warning: null argument where non-null required (argument 3) [-Wnonnull]
-/tmp/ccvTT9Gm.o: In function `main':
-/home/arthur/OS/bochs-2.6.7/conftest.c:166: undefined reference to `pthread_join'
-/home/arthur/OS/bochs-2.6.7/conftest.c:167: undefined reference to `__pthread_register_cancel'
-/home/arthur/OS/bochs-2.6.7/conftest.c:168: undefined reference to `pthread_create'
-/home/arthur/OS/bochs-2.6.7/conftest.c:168: undefined reference to `__pthread_unregister_cancel'
+/tmp/ccZGHTQc.o: In function `main':
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:166: undefined reference to `pthread_join'
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:167: undefined reference to `__pthread_register_cancel'
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:168: undefined reference to `pthread_create'
+/home/arthur/work/operating_system_Lab/Project1/bochs-2.6.7/conftest.c:168: undefined reference to `__pthread_unregister_cancel'
 collect2: error: ld returned 1 exit status
 configure:25483: $? = 1
 configure: failed program was:
@@ -4619,7 +4616,9 @@ config.status:1123: creating build/win32/nsis/Makefile
 config.status:1123: creating build/win32/nsis/bochs.nsi
 config.status:1123: creating host/linux/pcidev/Makefile
 config.status:1123: creating config.h
+config.status:1293: config.h is unchanged
 config.status:1123: creating ltdlconf.h
+config.status:1293: ltdlconf.h is unchanged
 
 ## ---------------- ##
 ## Cache variables. ##
