@@ -7,12 +7,12 @@
 
 int main()
 {
-	int cpid;/* ±£´æ×Ó½ø³ÌµÄidºÅ */
-	int ppid;/* ±£´æ¸¸½ø³ÌµÄidºÅ */
+	int cpid;/* ä¿å­˜å­è¿›ç¨‹çš„idå· */
+	int ppid;/* ä¿å­˜çˆ¶è¿›ç¨‹çš„idå· */
 	char buf[256];
 	char *argv[] = {"/usr/bin/vi","process.txt",NULL};
   
-	ppid=getpid();//µÃµ½½ü³ÌºÅ
+	ppid=getpid();//å¾—åˆ°è¿‘ç¨‹å·
 	cpid=fork();
   
 	if (cpid<0)
@@ -22,7 +22,7 @@ int main()
 	{
 		fprintf(stdout,"ID(child)=%d\n",getpid());
 
-		/* Ê¹×Ó½ø³ÌËùÔÚµÄ½ø³Ì×é³ÉÎªÇ°Ì¨½ø³Ì×é£¬È»ºóÖ´ĞĞvi */
+		/* ä½¿å­è¿›ç¨‹æ‰€åœ¨çš„è¿›ç¨‹ç»„æˆä¸ºå‰å°è¿›ç¨‹ç»„ï¼Œç„¶åæ‰§è¡Œvi */
 		// setpgid(0,0);
 		// tcsetpgrp(0,getpid());
 		execvp(argv[0],argv);
@@ -30,12 +30,12 @@ int main()
 	}
    
 	fprintf(stdout,"ID(parent)=%d\n",ppid);
-	// setpgid(cpid,cpid);/* ÉèÖÃ½ø³Ì×é */
-	// tcsetpgrp(0,cpid);/* ÉèÖÃ¿ØÖÆÖÕ¶ËÎª×Ó½ø³ÌÓµÓĞ */
-	waitpid(cpid,NULL,0);/* ¸¸½ø³ÌµÈ´ı×Ó½ø³ÌÖ´ĞĞÍê±Ï£¬ËùÔÚ½ø³Ì×é³ÉÎªÇ°Ì¨½ø³Ì×é */
+	// setpgid(cpid,cpid);/* è®¾ç½®è¿›ç¨‹ç»„ */
+	// tcsetpgrp(0,cpid);/* è®¾ç½®æ§åˆ¶ç»ˆç«¯ä¸ºå­è¿›ç¨‹æ‹¥æœ‰ */
+	waitpid(cpid,NULL,0);/* çˆ¶è¿›ç¨‹ç­‰å¾…å­è¿›ç¨‹æ‰§è¡Œå®Œæ¯•ï¼Œæ‰€åœ¨è¿›ç¨‹ç»„æˆä¸ºå‰å°è¿›ç¨‹ç»„ */
 	tcsetpgrp(0,ppid);
 
-	//¸¸½ø³ÌµÈ´ıÖÕ¶ËÊäÈë£¬È»ºó»ØÏÔ
+	//çˆ¶è¿›ç¨‹ç­‰å¾…ç»ˆç«¯è¾“å…¥ï¼Œç„¶åå›æ˜¾
 	while(1)
 	{
 		memset(buf, 0, 256);

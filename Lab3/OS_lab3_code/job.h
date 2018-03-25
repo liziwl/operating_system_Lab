@@ -18,56 +18,56 @@
 
 #define BUFLEN 100
 #define GLOBALFILE "screendump"
-//Ã¶¾Ù×÷Òµ×´Ì¬£º¾ÍĞ÷£¬ÔËĞĞ£¬Íê³É
+//æšä¸¾ä½œä¸šçŠ¶æ€ï¼šå°±ç»ªï¼Œè¿è¡Œï¼Œå®Œæˆ
 enum jobstate 
 {
   READY, RUNNING, DONE
 };
-//Ã¶¾ÙÃüÁîÀàĞÍ£º½ø¶Ó£¬³ö¶Ó£¬µ±Ç°×´Ì¬²éÑ¯
+//æšä¸¾å‘½ä»¤ç±»å‹ï¼šè¿›é˜Ÿï¼Œå‡ºé˜Ÿï¼Œå½“å‰çŠ¶æ€æŸ¥è¯¢
 enum cmdtype 
 {
   ENQ = -1, DEQ = -2, STAT = -3
 };
 
 /* this is data passed in fifo */
-//×÷Òµµ÷¶ÈÃüÁî½á¹¹
+//ä½œä¸šè°ƒåº¦å‘½ä»¤ç»“æ„
 struct jobcmd {
-  enum	cmdtype type;//×÷ÒµÃüÁîÀàĞÍ
-  int	argnum;//²ÎÊıÀàĞÍ
-  int	owner;//×÷ÒµµÄowner
-  int	defpri;//Ä¬ÈÏÓÅÏÈ¼¶
-  char	data[BUFLEN];//Êı¾İÀàĞÍ
+  enum	cmdtype type;//ä½œä¸šå‘½ä»¤ç±»å‹
+  int	argnum;//å‚æ•°ç±»å‹
+  int	owner;//ä½œä¸šçš„owner
+  int	defpri;//é»˜è®¤ä¼˜å…ˆçº§
+  char	data[BUFLEN];//æ•°æ®ç±»å‹
 };
 
 #define DATALEN sizeof(struct jobcmd)
 #define error_sys printf
 
 struct jobinfo {
-  int    jid;                 /* ×÷Òµid */
-  int    pid;                 /* ½ø³Ìid */
-  char** cmdarg;              /* Ö´ĞĞµÄÃüÁî»òÕß²ÎÊıthe command & args to execute */
-  int    defpri;              /* Ä¬ÈÏÓÅÏÈÈ¨   default priority */
-  int    curpri;              /* µ±ÆÚµÄÓÅÏÈÈ¨ current priority */
-  int    ownerid;             /* ×÷ÒµÓµÓĞÕßid the job owner id */
-  int    wait_time;           /* ÔÚµÈ´ı¶ÓÁĞÖĞµÈ´ıµÄÊ±¼äthe time job in waitqueue */
-  time_t create_time;         /* ´´½¨×÷ÒµµÄÊ±¼äthe time job create */
-  int    run_time;            /* ×÷ÒµÔËĞĞµÄÊ±¼äthe time job running */
-  enum   jobstate state;      /* ×÷Òµ×´Ì¬job state */
+  int    jid;                 /* ä½œä¸šid */
+  int    pid;                 /* è¿›ç¨‹id */
+  char** cmdarg;              /* æ‰§è¡Œçš„å‘½ä»¤æˆ–è€…å‚æ•°the command & args to execute */
+  int    defpri;              /* é»˜è®¤ä¼˜å…ˆæƒ   default priority */
+  int    curpri;              /* å½“æœŸçš„ä¼˜å…ˆæƒ current priority */
+  int    ownerid;             /* ä½œä¸šæ‹¥æœ‰è€…id the job owner id */
+  int    wait_time;           /* åœ¨ç­‰å¾…é˜Ÿåˆ—ä¸­ç­‰å¾…çš„æ—¶é—´the time job in waitqueue */
+  time_t create_time;         /* åˆ›å»ºä½œä¸šçš„æ—¶é—´the time job create */
+  int    run_time;            /* ä½œä¸šè¿è¡Œçš„æ—¶é—´the time job running */
+  enum   jobstate state;      /* ä½œä¸šçŠ¶æ€job state */
 };
 
-struct waitqueue {            /* Ë«ÏòµÄÁ´±í double link list */
-  struct waitqueue *next;    //ÏÂÒ»¸öµÈ´ı×÷Òµ
-  struct jobinfo *job;       //µ±Ç°µÈ´ı×÷ÒµµÄĞÅÏ¢
+struct waitqueue {            /* åŒå‘çš„é“¾è¡¨ double link list */
+  struct waitqueue *next;    //ä¸‹ä¸€ä¸ªç­‰å¾…ä½œä¸š
+  struct jobinfo *job;       //å½“å‰ç­‰å¾…ä½œä¸šçš„ä¿¡æ¯
 };
 
-void schedule();//µ÷¶Èº¯Êı
-void sig_handler(int sig, siginfo_t *info, void *notused);//ĞÅºÅ´¦Àí
-int  allocjid();//·ÖÅä×÷Òµid
-void do_enq(struct jobinfo *newjob, struct jobcmd enqcmd);//Èë¶Óº¯Êı
-void do_deq(struct jobcmd deqcmd);//³ö¶Óº¯Êı
-void do_stat();//ÏÔÊ¾×÷Òµ×´Ì¬
-void updateall();//¸üĞÂËùÓĞ×÷ÒµĞÅÏ¢
-struct waitqueue* jobselect();//µÈ´ı¶ÓÁĞÖĞÑ¡Ôñ×÷Òµ
-void jobswitch();//×÷Òµ×ª»»
+void schedule();//è°ƒåº¦å‡½æ•°
+void sig_handler(int sig, siginfo_t *info, void *notused);//ä¿¡å·å¤„ç†
+int  allocjid();//åˆ†é…ä½œä¸šid
+void do_enq(struct jobinfo *newjob, struct jobcmd enqcmd);//å…¥é˜Ÿå‡½æ•°
+void do_deq(struct jobcmd deqcmd);//å‡ºé˜Ÿå‡½æ•°
+void do_stat();//æ˜¾ç¤ºä½œä¸šçŠ¶æ€
+void updateall();//æ›´æ–°æ‰€æœ‰ä½œä¸šä¿¡æ¯
+struct waitqueue* jobselect();//ç­‰å¾…é˜Ÿåˆ—ä¸­é€‰æ‹©ä½œä¸š
+void jobswitch();//ä½œä¸šè½¬æ¢
 
 #endif

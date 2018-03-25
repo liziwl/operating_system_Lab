@@ -6,68 +6,68 @@
 int main(int argc, char *argv[])
 {
 	int status;
-	int pid[2];//½ø³ÌºÅ
-	int pipe_fd[2];//pipeµÄÃèÊö·û£¬Ò»¸öpipeÓĞÁ½¸öÃèÊö·û£¬·Ö±ğÓÃÓÚreadÊ±ºòµÄÊäÈë£¬ºÍwriteÊ±ºòµÄÊä³ö
+	int pid[2];//è¿›ç¨‹å·
+	int pipe_fd[2];//pipeçš„æè¿°ç¬¦ï¼Œä¸€ä¸ªpipeæœ‰ä¸¤ä¸ªæè¿°ç¬¦ï¼Œåˆ†åˆ«ç”¨äºreadæ—¶å€™çš„è¾“å…¥ï¼Œå’Œwriteæ—¶å€™çš„è¾“å‡º
   
-	char *prog1_argv[4];//Æô¶¯½ø³ÌµÄÊ±ºòµÄ²ÎÊı
+	char *prog1_argv[4];//å¯åŠ¨è¿›ç¨‹çš„æ—¶å€™çš„å‚æ•°
 	char *prog2_argv[2];
 
-	char rwBuffer[1024] = {'\0'};//ÓÃreadºÍwrite¶ÁĞ´pipeÊ±ºòÊ¹ÓÃµÄ»º³åÇø
+	char rwBuffer[1024] = {'\0'};//ç”¨readå’Œwriteè¯»å†™pipeæ—¶å€™ä½¿ç”¨çš„ç¼“å†²åŒº
   
-	prog1_argv[0]="/bin/ls";/* ÃüÁîlsµÄ²ÎÊı±í */
+	prog1_argv[0]="/bin/ls";/* å‘½ä»¤lsçš„å‚æ•°è¡¨ */
 	prog1_argv[1]="-l";
 	prog1_argv[2]="/etc/";
 	prog1_argv[3]=NULL;
   
-	prog2_argv[0]="/bin/more";/* ÃüÁîmoreµÄ²ÎÊı±í */
+	prog2_argv[0]="/bin/more";/* å‘½ä»¤moreçš„å‚æ•°è¡¨ */
 	prog2_argv[1]=NULL;
 
-	if (pipe(pipe_fd)<0)//´´½¨pipe£¬»ñµÃÓÃÓÚÊäÈëºÍÊä³öµÄÃèÊö·û
+	if (pipe(pipe_fd)<0)//åˆ›å»ºpipeï¼Œè·å¾—ç”¨äºè¾“å…¥å’Œè¾“å‡ºçš„æè¿°ç¬¦
 	{  
 		perror("pipe failed");
 		exit(errno);
 	}
 
-	if ((pid[0]=fork())<0)/* ¸¸½ø³ÌÎªlsÃüÁî´´½¨×Ó½ø³Ì */
+	if ((pid[0]=fork())<0)/* çˆ¶è¿›ç¨‹ä¸ºlså‘½ä»¤åˆ›å»ºå­è¿›ç¨‹ */
 	{
 		perror("Fork failed");
 		exit(errno);
 	}
 
-	if (!pid[0])/* ls×Ó½ø³Ì */
+	if (!pid[0])/* lså­è¿›ç¨‹ */
 	{
-		read(pipe_fd[0],rwBuffer,1024);//¶È¹ÜµÀ£¬»á×èÈû£¬µÈ´ı¸¸½ø³Ì·¢²¼ÃüÁî
+		read(pipe_fd[0],rwBuffer,1024);//åº¦ç®¡é“ï¼Œä¼šé˜»å¡ï¼Œç­‰å¾…çˆ¶è¿›ç¨‹å‘å¸ƒå‘½ä»¤
 		fprintf(stdout,"\n\n-----------------------%s|rec---------------------------\n\n",rwBuffer);
 
-		/*²»ĞèÒªÔÙ¶ÁÈ¡ÁË,¹Ø±Õ¶Á¶Ë*/
+		/*ä¸éœ€è¦å†è¯»å–äº†,å…³é—­è¯»ç«¯*/
 		close(pipe_fd[0]);
-		dup2(pipe_fd[1],1);/*½«¹ÜµÀµÄĞ´ÃèÊö·û¸´ÖÆ¸ø±ê×¼Êä³ö,È»ºó¹Ø±Õ*/
+		dup2(pipe_fd[1],1);/*å°†ç®¡é“çš„å†™æè¿°ç¬¦å¤åˆ¶ç»™æ ‡å‡†è¾“å‡º,ç„¶åå…³é—­*/
 		close(pipe_fd[1]);
 
-		execvp(prog1_argv[0], prog1_argv);//µ÷ÓÃls
+		execvp(prog1_argv[0], prog1_argv);//è°ƒç”¨ls
 	}
   
-	if (pid[0])/*¸¸½ø³Ì£¬Îªmore´´½¨×Ó½ø³Ì*/
+	if (pid[0])/*çˆ¶è¿›ç¨‹ï¼Œä¸ºmoreåˆ›å»ºå­è¿›ç¨‹*/
 	{
-		if ((pid[1]=fork())<0)//ÔÙ´Î´´½¨½ø³Ì
+		if ((pid[1]=fork())<0)//å†æ¬¡åˆ›å»ºè¿›ç¨‹
 		{
 			perror("Fork failed");
 			exit(errno);
 		}
-		if (!pid[1])//×Ó½ø³Ì
+		if (!pid[1])//å­è¿›ç¨‹
 		{
 			close(pipe_fd[1]);
-			dup2(pipe_fd[0],0);/*½«¹ÜµÀµÄ¶ÁÃèÊö·û¸´ÖÆ¸ø±ê×¼ÊäÈë£¬È»ºó¹Ø±Õ*/
+			dup2(pipe_fd[0],0);/*å°†ç®¡é“çš„è¯»æè¿°ç¬¦å¤åˆ¶ç»™æ ‡å‡†è¾“å…¥ï¼Œç„¶åå…³é—­*/
 			close(pipe_fd[0]);
       
 			execvp(prog2_argv[0],prog2_argv);
 		}else{
 			fprintf(stdout,"\n\n-------------------------%s|send---------------------\n\n",rwBuffer);
 			sprintf(rwBuffer,"start1");
-			write(pipe_fd[1],rwBuffer,strlen(rwBuffer));//½«ÃüÁîĞ´Èëµ½¹ÜµÀ
+			write(pipe_fd[1],rwBuffer,strlen(rwBuffer));//å°†å‘½ä»¤å†™å…¥åˆ°ç®¡é“
 			fprintf(stdout,"\n\n-------------------------%s|send---------------------\n\n",rwBuffer);
 			sprintf(rwBuffer,"start2");
-			write(pipe_fd[1],rwBuffer,strlen(rwBuffer));//½«ÃüÁîĞ´Èëµ½¹ÜµÀ
+			write(pipe_fd[1],rwBuffer,strlen(rwBuffer));//å°†å‘½ä»¤å†™å…¥åˆ°ç®¡é“
 		}
 
 		close(pipe_fd[0]);

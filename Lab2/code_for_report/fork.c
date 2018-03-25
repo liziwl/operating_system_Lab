@@ -8,26 +8,26 @@ int main(int argc,char* argv[])
 	int pid;
 	char *prog_argv[4];
 
-	/* ½¨Á¢²ÎÊı±í */
+	/* å»ºç«‹å‚æ•°è¡¨ */
 	prog_argv[0]="/bin/ls";
 	prog_argv[1]="-l";
 	prog_argv[2]="/";
 	prog_argv[3]=NULL;
 
-	/* ÎªÃüÁîls´´½¨½ø³Ì */
+	/* ä¸ºå‘½ä»¤lsåˆ›å»ºè¿›ç¨‹ */
 	if ((pid=fork())<0)
 	{
 		perror("Fork failed");
 		exit(errno);
 	}
 
-	if (!pid)/* ÕâÊÇ×Ó½ø³Ì£¬Ö´ĞĞÃüÁîls */
+	if (!pid)/* è¿™æ˜¯å­è¿›ç¨‹ï¼Œæ‰§è¡Œå‘½ä»¤ls */
 	{
 		printf("argc = %d, argv[0] = %s",argc,argv[0]);
 		execvp(prog_argv[0],prog_argv);
 	}
 
-	if (pid)/* ÕâÊÇ¸¸½ø³Ì£¬µÈ´ı×Ó½ø³ÌÖ´ĞĞ½áÊø*/
+	if (pid)/* è¿™æ˜¯çˆ¶è¿›ç¨‹ï¼Œç­‰å¾…å­è¿›ç¨‹æ‰§è¡Œç»“æŸ*/
 	{
 		waitpid(pid,NULL,0);
 	}

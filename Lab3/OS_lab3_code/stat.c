@@ -10,7 +10,7 @@
  * command syntax
  *     stat
  */
- //提示信息函数
+ //鎻愮ず淇℃伅鍑芥暟
 void usage()
 { 
 	printf ("Usage: stat\n");		
@@ -18,7 +18,7 @@ void usage()
 
 int main (int argc,char *argv[])
 {
-//作业调度命令结构,
+//浣滀笟璋冨害鍛戒护缁撴瀯,
 	struct jobcmd statcmd;
 	int fd;
 

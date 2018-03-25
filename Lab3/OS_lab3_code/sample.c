@@ -1,4 +1,4 @@
-//Ìá½»ÁËÒ»¸öÔËĞĞÊ±¼ä³¬¹ı100ºÁÃëµÄ×÷Òµ
+//æäº¤äº†ä¸€ä¸ªè¿è¡Œæ—¶é—´è¶…è¿‡100æ¯«ç§’çš„ä½œä¸š
 #include <stdio.h>
 
 int main(int argc,char *argv[])
@@ -9,7 +9,7 @@ int main(int argc,char *argv[])
 		printf("%s\n",argv[i]);
 	}
 
-	sleep(120);//ĞİÏ¢120Ãë
+	sleep(120);//ä¼‘æ¯120ç§’
 
 	return 0;
 }
