@@ -9,7 +9,6 @@
 #include "write.h"
 
 pthread_t rehs[600], wrhs[25];
-int readcount;
 
 int main() {
     int nw, nr;
