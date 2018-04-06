@@ -6,11 +6,12 @@
 #include<pthread.h>
 
 
-sem_t db,rc;
+sem_t *rc, *db;
 int readcount;
 
-void *writer(int *buffer){
-    printf ("write ::%d\n", *buffer);
-
+void *writer(int *buffer) {
+    sem_wait(db);
+    *buffer += 1;
+    printf("write ::%d\n", *buffer);
+    sem_post(db);
 }
-

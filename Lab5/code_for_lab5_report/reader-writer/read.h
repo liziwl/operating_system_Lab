@@ -5,13 +5,21 @@
 #include<pthread.h>
 
 
-extern  sem_t db,rc;
+extern sem_t *rc, *db;
 extern int readcount;
 
-void *reader(int *buffer){
-
+void *reader(int *buffer) {
+    sem_wait(rc);
+    if (0 == readcount) {
+        sem_wait(db);
+        readcount++;
+    }
+    sem_post(rc);
     printf("\nReader Inside..%d\n", *buffer);
-    sleep (3);
-    
+    sem_wait(rc);
+    readcount--;
+    if (0 == readcount) {
+        sem_post(db);
+    }
+    sem_post(rc);
 }
-
