@@ -1,10 +1,9 @@
-#include<stdio.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <time.h>
 #include <stdlib.h>
-#include<semaphore.h>
-#include<pthread.h>
-
+#include <semaphore.h>
+#include <pthread.h>
 
 sem_t *rc, *db;
 int readcount;
