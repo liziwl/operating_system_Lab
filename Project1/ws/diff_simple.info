@@ -1,0 +1,31 @@
+diff -urNab pintos/src/devices/timer.c pintos-project-1/src/devices/timer.c
+--- pintos/src/devices/timer.c	2018-04-16 23:50:45.298165634 +0800
++++ pintos-project-1/src/devices/timer.c	2018-04-16 23:51:06.709310864 +0800
+
+diff -urNab pintos/src/tests/threads/alarm-priority.c pintos-project-1/src/tests/threads/alarm-priority.c
+--- pintos/src/tests/threads/alarm-priority.c	2018-04-16 23:50:47.620205937 +0800
++++ pintos-project-1/src/tests/threads/alarm-priority.c	2018-04-16 23:51:06.717320807 +0800
+
+diff -urNab pintos/src/threads/fixed_point.h pintos-project-1/src/threads/fixed_point.h
+--- pintos/src/threads/fixed_point.h	1970-01-01 08:00:00.000000000 +0800
++++ pintos-project-1/src/threads/fixed_point.h	2018-04-16 23:51:06.737345666 +0800
+
+diff -urNab pintos/src/threads/synch.c pintos-project-1/src/threads/synch.c
+--- pintos/src/threads/synch.c	2018-04-16 23:50:46.225526666 +0800
++++ pintos-project-1/src/threads/synch.c	2018-04-16 23:51:06.737345666 +0800
+
+diff -urNab pintos/src/threads/synch.h pintos-project-1/src/threads/synch.h
+--- pintos/src/threads/synch.h	2018-04-16 23:50:46.221481727 +0800
++++ pintos-project-1/src/threads/synch.h	2018-04-16 23:51:06.737345666 +0800
+
+diff -urNab pintos/src/threads/thread.c pintos-project-1/src/threads/thread.c
+--- pintos/src/threads/thread.c	2018-04-16 23:50:46.241706421 +0800
++++ pintos-project-1/src/threads/thread.c	2018-04-16 23:51:06.737345666 +0800
+
+diff -urNab pintos/src/threads/thread.h pintos-project-1/src/threads/thread.h
+--- pintos/src/threads/thread.h	2018-04-16 23:50:46.233616543 +0800
++++ pintos-project-1/src/threads/thread.h	2018-04-16 23:51:06.737345666 +0800
+
+diff -urNab pintos/src/utils/pintos-gdb pintos-project-1/src/utils/pintos-gdb
+--- pintos/src/utils/pintos-gdb	2018-04-16 23:50:45.367033877 +0800
++++ pintos-project-1/src/utils/pintos-gdb	2018-04-16 23:51:06.741350637 +0800

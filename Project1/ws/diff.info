@@ -1,0 +1,870 @@
+diff -urNab pintos/README.md pintos-project-1/README.md
+--- pintos/README.md	1970-01-01 08:00:00.000000000 +0800
++++ pintos-project-1/README.md	2018-04-16 23:51:06.705305892 +0800
+@@ -0,0 +1,37 @@
++Pintos Project 1
++================
++
++This is my solution of [Pintos](http://www.scs.stanford.edu/14wi-cs140/) Project 1.
++
++AUTHOR
++------
++
++Kainan Zhu (Microdog) <dlangu0393@gmail.com>
++
++COURSE INFO
++-----------
++
++**Introduction to Operating Systems 2014**
++
++Software Engineering Institute, East China Normal University
++
++Instructor: [QIAN Weining](http://faculty.ecnu.edu.cn/s/1047/main.jspy) (Professor, Ph.D.)
++
++Homepage: https://wnqian.wordpress.com/teaching/os2014/
++
++NOTICE
++------
++
++This is my solution of the assignment, not the standard solution. The algorithm used in this project may not be the best.
++
++Documents are not provided in this repo.
++
++LICENSE
++-------
++
++Copyright © 2004, 2005, 2006 Board of Trustees, Leland Stanford Jr. University. All rights reserved.
++Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+diff -urNab pintos/src/devices/timer.c pintos-project-1/src/devices/timer.c
+--- pintos/src/devices/timer.c	2018-04-16 23:50:45.298165634 +0800
++++ pintos-project-1/src/devices/timer.c	2018-04-16 23:51:06.709310864 +0800
+@@ -3,6 +3,7 @@
+ #include <inttypes.h>
+ #include <round.h>
+ #include <stdio.h>
++#include <kernel/list.h>
+ #include "devices/pit.h"
+ #include "threads/interrupt.h"
+ #include "threads/synch.h"
+@@ -17,6 +18,9 @@
+ #error TIMER_FREQ <= 1000 recommended
+ #endif
+ 
++/* Waiting list of timer_sleep */
++struct list sleeping_list;
++
+ /* Number of timer ticks since OS booted. */
+ static int64_t ticks;
+ 
+@@ -37,6 +41,7 @@
+ {
+   pit_configure_channel (0, 2, TIMER_FREQ);
+   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
++  list_init (&sleeping_list);
+ }
+ 
+ /* Calibrates loops_per_tick, used to implement brief delays. */
+@@ -89,11 +94,26 @@
+ void
+ timer_sleep (int64_t ticks) 
+ {
+-  int64_t start = timer_ticks ();
++  struct thread *cur_thread;
++  enum intr_level old_level;
+ 
+   ASSERT (intr_get_level () == INTR_ON);
+-  while (timer_elapsed (start) < ticks) 
+-    thread_yield ();
++
++  if (ticks <= 0)
++    return;
++
++  old_level = intr_disable ();
++
++  /* Get current thread and set wakeup ticks. */
++  cur_thread = thread_current ();
++  cur_thread->wakeup_ticks = timer_ticks () + ticks;
++
++  /* Insert current thread to ordered sleeping list */
++  list_insert_ordered (&sleeping_list, &cur_thread->elem,
++                       thread_wakeup_ticks_less, NULL);
++  thread_block ();
++
++  intr_set_level (old_level);
+ }
+ 
+ /* Sleeps for approximately MS milliseconds.  Interrupts must be
+@@ -170,8 +190,38 @@
+ static void
+ timer_interrupt (struct intr_frame *args UNUSED)
+ {
++  struct list_elem *pe;
++  struct thread *pt;
++  bool preempt = false;
++
+   ticks++;
+   thread_tick ();
++
++  /* Actions for 4.4BSD scheduler. */
++  if (thread_mlfqs)
++    {
++      thread_mlfqs_incr_recent_cpu ();
++      if (ticks % TIMER_FREQ == 0)
++        thread_mlfqs_refresh ();
++      else if (ticks % 4 == 0)
++        thread_mlfqs_update_priority (thread_current ());
++    }
++
++  /* Check and wake up sleeping threads. */
++  while (!list_empty(&sleeping_list))
++    {
++      pe = list_front (&sleeping_list);
++      pt = list_entry (pe, struct thread, elem);
++      if (pt->wakeup_ticks > ticks)
++        {
++          break;
++        }
++      list_remove (pe);
++      thread_unblock (pt);
++      preempt = true;
++    }
++  if (preempt)
++    intr_yield_on_return ();
+ }
+ 
+ /* Returns true if LOOPS iterations waits for more than one timer
+diff -urNab pintos/src/tests/threads/alarm-priority.c pintos-project-1/src/tests/threads/alarm-priority.c
+--- pintos/src/tests/threads/alarm-priority.c	2018-04-16 23:50:47.620205937 +0800
++++ pintos-project-1/src/tests/threads/alarm-priority.c	2018-04-16 23:51:06.717320807 +0800
+@@ -10,17 +10,21 @@
+ #include "devices/timer.h"
+ 
+ static thread_func alarm_priority_thread;
++static int64_t wake_time;
+ static struct semaphore wait_sema;
+ 
+ void
+ test_alarm_priority (void)
+ {
++  int i;
++  
+     /* This test does not work with the MLFQS. */
+     ASSERT (!thread_mlfqs);
+     
++  wake_time = timer_ticks () + 5 * TIMER_FREQ;
+     sema_init (&wait_sema, 0);
+     
+-    for (int i = 0; i < 10; i++)
++  for (i = 0; i < 10; i++) 
+     {
+         int priority = PRI_DEFAULT - (i + 5) % 10 - 1;
+         char name[16];
+@@ -28,25 +32,27 @@
+         thread_create (name, priority, alarm_priority_thread, NULL);
+     }
+     
+-    printf ("\nbegin\n");
+-    for (int i = 0; i < 10; i++)
+-        sema_up (&wait_sema);
++  thread_set_priority (PRI_MIN);
+     
+-    timer_sleep(2000);
+-    printf ("\nend\n");
++  for (i = 0; i < 10; i++)
++    sema_down (&wait_sema);
+ }
+ 
+ static void
+ alarm_priority_thread (void *aux UNUSED)
+ {
++  /* Busy-wait until the current time changes. */
++  int64_t start_time = timer_ticks ();
++  while (timer_elapsed (start_time) == 0)
++    continue;
++
+     /* Now we know we're at the very beginning of a timer tick, so
+      we can call timer_sleep() without worrying about races
+      between checking the time and a timer interrupt. */
++  timer_sleep (wake_time - timer_ticks ());
+     
+-    sema_down (&wait_sema);
+     /* Print a message on wake-up. */
+-    int64_t t = timer_ticks ();
+-    for (int i = 0; i < 30; )
+-        if (timer_ticks () != t)
+-            i++, t = timer_ticks ();
++  msg ("Thread %s woke up.", thread_name ());
++
++  sema_up (&wait_sema);
+ }
+diff -urNab pintos/src/threads/fixed_point.h pintos-project-1/src/threads/fixed_point.h
+--- pintos/src/threads/fixed_point.h	1970-01-01 08:00:00.000000000 +0800
++++ pintos-project-1/src/threads/fixed_point.h	2018-04-16 23:51:06.737345666 +0800
+@@ -0,0 +1,34 @@
++#ifndef __THREAD_FIXED_POINT_H
++#define __THREAD_FIXED_POINT_H
++
++/* Basic definitions of fixed point. */
++typedef int fixed_t;
++/* 16 LSB used for fractional part. */
++#define FP_SHIFT_AMOUNT 16
++
++/* Some helpful macros. */
++/* Convert a value to fixed-point value. */
++#define FP_CONST(A) ((fixed_t)(A << FP_SHIFT_AMOUNT))
++/* Add two fixed-point value. */
++#define FP_ADD(A,B) (A + B)
++/* Add a fixed-point value A and an int value B. */
++#define FP_ADD_MIX(A,B) (A + (B << FP_SHIFT_AMOUNT))
++/* Substract two fixed-point value. */
++#define FP_SUB(A,B) (A - B)
++/* Substract an int value B from a fixed-point value A */
++#define FP_SUB_MIX(A,B) (A - (B << FP_SHIFT_AMOUNT))
++/* Multiply a fixed-point value A by an int value B. */
++#define FP_MULT_MIX(A,B) (A * B)
++/* Divide a fixed-point value A by an int value B. */
++#define FP_DIV_MIX(A,B) (A / B)
++/* Multiply two fixed-point value. */
++#define FP_MULT(A,B) ((fixed_t)(((int64_t) A) * B >> FP_SHIFT_AMOUNT))
++/* Divide two fixed-point value. */
++#define FP_DIV(A,B) ((fixed_t)((((int64_t) A) << FP_SHIFT_AMOUNT) / B))
++/* Get integer part of a fixed-point value. */
++#define FP_INT_PART(A) (A >> FP_SHIFT_AMOUNT)
++/* Get rounded integer of a fixed-point value. */
++#define FP_ROUND(A) (A >= 0 ? ((A + (1 << (FP_SHIFT_AMOUNT - 1))) >> FP_SHIFT_AMOUNT) \
++                            : ((A - (1 << (FP_SHIFT_AMOUNT - 1))) >> FP_SHIFT_AMOUNT))
++
++#endif /* thread/fixed_point.h */
+diff -urNab pintos/src/threads/synch.c pintos-project-1/src/threads/synch.c
+--- pintos/src/threads/synch.c	2018-04-16 23:50:46.225526666 +0800
++++ pintos-project-1/src/threads/synch.c	2018-04-16 23:51:06.737345666 +0800
+@@ -68,7 +68,8 @@
+   old_level = intr_disable ();
+   while (sema->value == 0) 
+     {
+-      list_push_back (&sema->waiters, &thread_current ()->elem);
++      list_insert_ordered (&sema->waiters, &thread_current ()->elem,
++                           thread_priority_large, NULL);
+       thread_block ();
+     }
+   sema->value--;
+@@ -114,9 +115,14 @@
+ 
+   old_level = intr_disable ();
+   if (!list_empty (&sema->waiters)) 
++    {
++      list_sort (&sema->waiters, thread_priority_large, NULL);
+     thread_unblock (list_entry (list_pop_front (&sema->waiters),
+                                 struct thread, elem));
++    }
++    
+   sema->value++;
++  thread_test_preemption ();
+   intr_set_level (old_level);
+ }
+ 
+@@ -192,12 +198,41 @@
+ void
+ lock_acquire (struct lock *lock)
+ {
++  struct thread *t = thread_current ();
++  struct lock *l;
++  int depth = 0;
++  enum intr_level old_level;
++
+   ASSERT (lock != NULL);
+   ASSERT (!intr_context ());
+   ASSERT (!lock_held_by_current_thread (lock));
+ 
++  if (lock->holder != NULL && !thread_mlfqs)
++    {
++      t->lock_waiting = lock;
++      l = lock;
++      /* Do nested priority donation. */
++      while (l && t->priority > l->max_priority
++             && depth++ < PRIDON_MAX_DEPTH)
++        {
++          l->max_priority = t->priority;
++          thread_donate_priority (l->holder);
++          l = l->holder->lock_waiting;
++        }
++    }
++
+   sema_down (&lock->semaphore);
+-  lock->holder = thread_current ();
++
++  old_level = intr_disable ();
++  t = thread_current ();
++  if (!thread_mlfqs)
++    {
++      t->lock_waiting = NULL;
++      lock->max_priority = t->priority;
++      thread_add_lock (lock);
++    }
++  lock->holder = t;
++  intr_set_level (old_level);
+ }
+ 
+ /* Tries to acquires LOCK and returns true if successful or false
+@@ -228,11 +263,20 @@
+ void
+ lock_release (struct lock *lock) 
+ {
++  enum intr_level old_level;
++
+   ASSERT (lock != NULL);
+   ASSERT (lock_held_by_current_thread (lock));
+ 
++  old_level = intr_disable ();
++
++  if (!thread_mlfqs)
++    thread_remove_lock (lock);
++
+   lock->holder = NULL;
+   sema_up (&lock->semaphore);
++
++  intr_set_level (old_level);
+ }
+ 
+ /* Returns true if the current thread holds LOCK, false
+@@ -246,6 +290,17 @@
+   return lock->holder == thread_current ();
+ }
+ 
++bool
++lock_priority_large (const struct list_elem *a,
++                     const struct list_elem *b,
++                     void *aux UNUSED)
++{
++  struct lock *la = list_entry (a, struct lock, elem);
++  struct lock *lb = list_entry (b, struct lock, elem);
++  return la->max_priority > lb->max_priority;
++}
++
++
+ /* One semaphore in a list. */
+ struct semaphore_elem 
+   {
+@@ -317,8 +372,11 @@
+   ASSERT (lock_held_by_current_thread (lock));
+ 
+   if (!list_empty (&cond->waiters)) 
++    {
++      list_sort (&cond->waiters, cond_sema_priority_large, NULL);
+     sema_up (&list_entry (list_pop_front (&cond->waiters),
+                           struct semaphore_elem, elem)->semaphore);
++    }
+ }
+ 
+ /* Wakes up all threads, if any, waiting on COND (protected by
+@@ -336,3 +394,20 @@
+   while (!list_empty (&cond->waiters))
+     cond_signal (cond, lock);
+ }
++
++bool
++cond_sema_priority_large (const struct list_elem *a,
++                          const struct list_elem *b,
++                          void *aux UNUSED)
++{
++  struct thread *ta;
++  struct thread *tb;
++  struct semaphore_elem *sa = list_entry (a, struct semaphore_elem, elem);
++  struct semaphore_elem *sb = list_entry (b, struct semaphore_elem, elem);
++
++  ta = list_entry(list_front(&sa->semaphore.waiters),
++                  struct thread, elem);
++  tb = list_entry(list_front(&sb->semaphore.waiters),
++                  struct thread, elem);
++  return ta->priority > tb->priority;
++}
+\ No newline at end of file
+diff -urNab pintos/src/threads/synch.h pintos-project-1/src/threads/synch.h
+--- pintos/src/threads/synch.h	2018-04-16 23:50:46.221481727 +0800
++++ pintos-project-1/src/threads/synch.h	2018-04-16 23:51:06.737345666 +0800
+@@ -22,6 +22,8 @@
+   {
+     struct thread *holder;      /* Thread holding lock (for debugging). */
+     struct semaphore semaphore; /* Binary semaphore controlling access. */
++    struct list_elem elem;      /* List element for priority donation. */
++    int max_priority;    /* Max priority for priority donation. */
+   };
+ 
+ void lock_init (struct lock *);
+@@ -29,6 +31,9 @@
+ bool lock_try_acquire (struct lock *);
+ void lock_release (struct lock *);
+ bool lock_held_by_current_thread (const struct lock *);
++bool lock_priority_large (const struct list_elem *a,
++                          const struct list_elem *b,
++                          void *aux);
+ 
+ /* Condition variable. */
+ struct condition 
+@@ -40,6 +45,9 @@
+ void cond_wait (struct condition *, struct lock *);
+ void cond_signal (struct condition *, struct lock *);
+ void cond_broadcast (struct condition *, struct lock *);
++bool cond_sema_priority_large (const struct list_elem *a,
++                               const struct list_elem *b,
++                               void *aux);
+ 
+ /* Optimization barrier.
+ 
+diff -urNab pintos/src/threads/thread.c pintos-project-1/src/threads/thread.c
+--- pintos/src/threads/thread.c	2018-04-16 23:50:46.241706421 +0800
++++ pintos-project-1/src/threads/thread.c	2018-04-16 23:51:06.737345666 +0800
+@@ -11,6 +11,7 @@
+ #include "threads/switch.h"
+ #include "threads/synch.h"
+ #include "threads/vaddr.h"
++#include "threads/fixed_point.h"
+ #ifdef USERPROG
+ #include "userprog/process.h"
+ #endif
+@@ -59,6 +60,8 @@
+    Controlled by kernel command-line option "-o mlfqs". */
+ bool thread_mlfqs;
+ 
++fixed_t load_avg;
++
+ static void kernel_thread (thread_func *, void *aux);
+ 
+ static void idle (void *aux UNUSED);
+@@ -110,6 +113,9 @@
+   sema_init (&idle_started, 0);
+   thread_create ("idle", PRI_MIN, idle, &idle_started);
+ 
++  /* Initialize load_avg. */
++  load_avg = FP_CONST (0);
++
+   /* Start preemptive thread scheduling. */
+   intr_enable ();
+ 
+@@ -124,12 +130,6 @@
+ {
+   struct thread *t = thread_current ();
+ 
+-    // don't change the following 3 lines  *********   !!!
+-    int len = strlen (t-> name);
+-    if (t->name[len - 1] >= '0' && t->name[len - 1] <= '9')
+-        printf ("(%c%c,%d) ", t->name[len - 2], t->name[len - 1], t->priority);
+-    //things to help us testing your program  ***   !!!
+-    
+   /* Update statistics. */
+   if (t == idle_thread)
+     idle_ticks++;
+@@ -207,6 +207,9 @@
+   /* Add to run queue. */
+   thread_unblock (t);
+ 
++  /* Test preemtpion. */
++  thread_test_preemption ();
++
+   return tid;
+ }
+ 
+@@ -243,7 +246,8 @@
+ 
+   old_level = intr_disable ();
+   ASSERT (t->status == THREAD_BLOCKED);
+-  list_push_back (&ready_list, &t->elem);
++  list_insert_ordered (&ready_list, &t->elem,
++                       thread_priority_large, NULL);
+   t->status = THREAD_READY;
+   intr_set_level (old_level);
+ }
+@@ -314,7 +318,8 @@
+ 
+   old_level = intr_disable ();
+   if (cur != idle_thread) 
+-    list_push_back (&ready_list, &cur->elem);
++    list_insert_ordered (&ready_list, &cur->elem,
++                         thread_priority_large, NULL);
+   cur->status = THREAD_READY;
+   schedule ();
+   intr_set_level (old_level);
+@@ -337,11 +342,32 @@
+     }
+ }
+ 
+-/* Sets the current thread's priority to NEW_PRIORITY. */
++/* Sets the current thread's priority to NEW_PRIORITY.
++   If the priority is donated by another thread, it may
++   not change immediately. */
+ void
+ thread_set_priority (int new_priority) 
+ {
+-  thread_current ()->priority = new_priority;
++  if (thread_mlfqs)
++    return;
++  
++  enum intr_level old_level = intr_disable ();
++  struct thread *t = thread_current ();
++  int old_priority = t->priority;
++
++  /* Always update base priority. */
++  t->base_priority = new_priority;
++
++  /* Only update priority and test preemption if new priority
++     is smaller and current priority is not donated by another
++     thread. */
++  if (new_priority < old_priority && list_empty (&t->locks))
++    {
++      t->priority = new_priority;
++      thread_test_preemption ();
++    }
++
++  intr_set_level (old_level);
+ }
+ 
+ /* Returns the current thread's priority. */
+@@ -351,37 +377,215 @@
+   return thread_current ()->priority;
+ }
+ 
++/* Add a held lock to current thread. */
++void
++thread_add_lock (struct lock *lock)
++{
++  enum intr_level old_level = intr_disable ();
++  list_insert_ordered (&thread_current ()->locks, &lock->elem,
++                       lock_priority_large, NULL);
++
++  /* Update priority and test preemption if lock's priority
++     is larger than current priority. */
++  if (lock->max_priority > thread_current ()->priority)
++    {
++      thread_current ()->priority = lock->max_priority;
++      thread_test_preemption ();
++    }
++  intr_set_level (old_level);
++}
++
++/* Remove a held lock from current thread. */
++void
++thread_remove_lock (struct lock *lock)
++{
++  enum intr_level old_level = intr_disable ();
++  /* Remove lock from list and update priority. */
++  list_remove (&lock->elem);
++  thread_update_priority (thread_current ());
++  intr_set_level (old_level);
++}
++
++/* Donate current thread's priority to another thread. */
++void
++thread_donate_priority (struct thread *t)
++{
++  enum intr_level old_level = intr_disable ();
++  thread_update_priority (t);
++  /* If thread is in ready list, reorder it. */
++  if (t->status == THREAD_READY)
++    {
++      list_remove (&t->elem);
++      list_insert_ordered (&ready_list, &t->elem,
++                           thread_priority_large, NULL);
++    }
++  intr_set_level (old_level);
++}
++
++/* Update thread's priority. This function only update
++   priority and do not preempt. */
++void
++thread_update_priority (struct thread *t)
++{
++  enum intr_level old_level = intr_disable ();
++  int max_priority = t->base_priority;
++  int lock_priority;
++
++  /* Get locks' max priority. */
++  if (!list_empty (&t->locks))
++    {
++      list_sort (&t->locks, lock_priority_large, NULL);
++      lock_priority = list_entry (list_front (&t->locks),
++                                  struct lock, elem)->max_priority;
++      if (lock_priority > max_priority)
++        max_priority = lock_priority;
++    }
++
++  t->priority = max_priority;
++  intr_set_level (old_level);
++}
++
++/* Test if current thread should be preempted. */
++void
++thread_test_preemption (void)
++{
++  enum intr_level old_level = intr_disable ();
++  if (!list_empty (&ready_list) && thread_current ()->priority < 
++      list_entry (list_front (&ready_list), struct thread, elem)->priority)
++      thread_yield ();
++  intr_set_level (old_level);
++}
++
+ /* Sets the current thread's nice value to NICE. */
+ void
+-thread_set_nice (int nice UNUSED) 
++thread_set_nice (int nice) 
+ {
+-  /* Not yet implemented. */
++  enum intr_level old_level = intr_disable ();
++  thread_current ()->nice = nice;
++  thread_mlfqs_update_priority (thread_current ());
++  thread_test_preemption ();
++  intr_set_level (old_level);
+ }
+ 
+ /* Returns the current thread's nice value. */
+ int
+ thread_get_nice (void) 
+ {
+-  /* Not yet implemented. */
+-  return 0;
++  return thread_current ()->nice;
+ }
+ 
+ /* Returns 100 times the system load average. */
+ int
+ thread_get_load_avg (void) 
+ {
+-  /* Not yet implemented. */
+-  return 0;
++  return FP_ROUND (FP_MULT_MIX (load_avg, 100));
+ }
+ 
+ /* Returns 100 times the current thread's recent_cpu value. */
+ int
+ thread_get_recent_cpu (void) 
+ {
+-  /* Not yet implemented. */
+-  return 0;
++  return FP_ROUND (FP_MULT_MIX (thread_current ()->recent_cpu, 100));
++}
++
++/* Increase current thread's recent_cpu by 1. */
++void
++thread_mlfqs_incr_recent_cpu(void)
++{
++  ASSERT (thread_mlfqs);
++  ASSERT (intr_context ());
++
++  struct thread *t = thread_current ();
++  if (t == idle_thread)
++    return;
++  t->recent_cpu = FP_ADD_MIX (t->recent_cpu, 1);
++}
++
++/* Calculate thread's recent_cpu. */
++void
++thread_mlfqs_calc_recent_cpu(struct thread *t)
++{
++  ASSERT (thread_mlfqs);
++  ASSERT (t != idle_thread);
++
++  fixed_t coef = FP_DIV (FP_MULT_MIX (load_avg, 2),
++                        FP_ADD_MIX (FP_MULT_MIX (load_avg, 2), 1));
++  fixed_t term = FP_MULT (coef, t->recent_cpu);
++  t->recent_cpu = FP_ADD_MIX (term, t->nice);
++}
++
++/* Update thread's priority. */
++void
++thread_mlfqs_update_priority(struct thread *t)
++{
++  if (t == idle_thread)
++    return;
++
++  ASSERT (thread_mlfqs);
++  ASSERT (t != idle_thread);
++
++  fixed_t new_priority = FP_CONST (PRI_MAX);
++  new_priority = FP_SUB (new_priority, FP_DIV_MIX (t->recent_cpu, 4));
++  new_priority = FP_SUB_MIX (new_priority, 2 * t->nice);
++  t->priority = FP_INT_PART (new_priority);
++  if (t->priority < PRI_MIN)
++    t->priority = PRI_MIN;
++  else if (t->priority > PRI_MAX)
++    t->priority = PRI_MAX;
++}
++
++/* Invoked once per second to refresh load_avg
++   and recent_cpu of all threads. */
++void
++thread_mlfqs_refresh(void)
++{
++  ASSERT (thread_mlfqs);
++  ASSERT (intr_context ());
++
++  /* Calculate load_avg per second. */
++  size_t ready_threads = list_size (&ready_list);
++  if (thread_current () != idle_thread)
++    ready_threads++;
++  load_avg = FP_ADD (FP_DIV_MIX (FP_MULT_MIX (load_avg, 59), 60),
++                     FP_DIV_MIX (FP_CONST (ready_threads), 60));
++
++  /* recent_cpu is recalculated for every thread per second. */
++  struct thread *t;
++  struct list_elem *e = list_begin (&all_list);
++  for (; e != list_end (&all_list); e = list_next (e))
++    {
++      t = list_entry(e, struct thread, allelem);
++      if (t != idle_thread)
++        {
++          thread_mlfqs_calc_recent_cpu (t);
++          thread_mlfqs_update_priority (t);
++        }
++    }
+ }
+ 
++/* Compare wakeup ticks of two threads */
++bool
++thread_wakeup_ticks_less(const struct list_elem *a,
++                         const struct list_elem *b,
++                         void *aux UNUSED)
++{
++  struct thread *pta = list_entry (a, struct thread, elem);
++  struct thread *ptb = list_entry (b, struct thread, elem);
++  return pta->wakeup_ticks < ptb->wakeup_ticks;
++}
++
++/* Compare priority of two thread. */
++bool
++thread_priority_large(const struct list_elem *a,
++                      const struct list_elem *b,
++                      void *aux UNUSED)
++{
++  struct thread *pta = list_entry (a, struct thread, elem);
++  struct thread *ptb = list_entry (b, struct thread, elem);
++  return pta->priority > ptb->priority;
++}
++
++
+ /* Idle thread.  Executes when no other thread is ready to run.
+ 
+    The idle thread is initially put on the ready list by
+@@ -468,6 +672,11 @@
+   strlcpy (t->name, name, sizeof t->name);
+   t->stack = (uint8_t *) t + PGSIZE;
+   t->priority = priority;
++  t->base_priority = priority;
++  list_init (&t->locks);
++  t->lock_waiting = NULL;
++  t->nice = 0;
++  t->recent_cpu = FP_CONST (0);
+   t->magic = THREAD_MAGIC;
+ 
+   old_level = intr_disable ();
+diff -urNab pintos/src/threads/thread.h pintos-project-1/src/threads/thread.h
+--- pintos/src/threads/thread.h	2018-04-16 23:50:46.233616543 +0800
++++ pintos-project-1/src/threads/thread.h	2018-04-16 23:51:06.737345666 +0800
+@@ -4,6 +4,8 @@
+ #include <debug.h>
+ #include <list.h>
+ #include <stdint.h>
++#include "synch.h"
++#include "fixed_point.h"
+ 
+ /* States in a thread's life cycle. */
+ enum thread_status
+@@ -24,6 +26,9 @@
+ #define PRI_DEFAULT 31                  /* Default priority. */
+ #define PRI_MAX 63                      /* Highest priority. */
+ 
++/* Thread prioriy donation. */
++#define PRIDON_MAX_DEPTH 9              /* Max depth of nested donation. */
++
+ /* A kernel thread or user process.
+ 
+    Each thread structure is stored in its own 4 kB page.  The
+@@ -74,12 +79,13 @@
+    the `magic' member of the running thread's `struct thread' is
+    set to THREAD_MAGIC.  Stack overflow will normally change this
+    value, triggering the assertion. */
+-/* The `elem' member has a dual purpose.  It can be an element in
++/* The `elem' member has a multiple purpose.  It can be an element in
+    the run queue (thread.c), or it can be an element in a
+-   semaphore wait list (synch.c).  It can be used these two ways
+-   only because they are mutually exclusive: only a thread in the
+-   ready state is on the run queue, whereas only a thread in the
+-   blocked state is on a semaphore wait list. */
++   semaphore wait list (synch.c) or an element in timer sleeping list
++   (timer.c). It can be used these ways only because they are 
++   mutually exclusive: only a thread in the ready state is on the
++   run queue, whereas only a thread in the blocked state is on a 
++   semaphore wait list or a timer sleeping list. */
+ struct thread
+   {
+     /* Owned by thread.c. */
+@@ -88,11 +94,21 @@
+     char name[16];                      /* Name (for debugging purposes). */
+     uint8_t *stack;                     /* Saved stack pointer. */
+     int priority;                       /* Priority. */
++    int base_priority;                  /* Base priority for priority donation */
+     struct list_elem allelem;           /* List element for all threads list. */
+ 
+-    /* Shared between thread.c and synch.c. */
++    /* Shared between thread.c, synch.c and timer.c. */
+     struct list_elem elem;              /* List element. */
+ 
++    struct list locks;                  /* Locks held for priority donation. */
++    struct lock *lock_waiting;          /* Lock waiting on for priority donation. */
++
++    int nice;                           /* Niceness for 4.4BSD scheduler. */
++    fixed_t recent_cpu;                 /* Recent CPU for 4.4BSD scheduler. */
++
++    int64_t wakeup_ticks;               /* Wakeup ticks used by timer sleep */
++    
++
+ #ifdef USERPROG
+     /* Owned by userprog/process.c. */
+     uint32_t *pagedir;                  /* Page directory. */
+@@ -130,12 +146,32 @@
+ typedef void thread_action_func (struct thread *t, void *aux);
+ void thread_foreach (thread_action_func *, void *);
+ 
++void thread_add_lock (struct lock *);
++void thread_remove_lock (struct lock *);
++
+ int thread_get_priority (void);
+ void thread_set_priority (int);
++void thread_donate_priority (struct thread *);
++void thread_update_priority (struct thread *);
++
++void thread_test_preemption (void);
+ 
+ int thread_get_nice (void);
+ void thread_set_nice (int);
+ int thread_get_recent_cpu (void);
+ int thread_get_load_avg (void);
+ 
++void thread_mlfqs_incr_recent_cpu(void);
++void thread_mlfqs_calc_recent_cpu(struct thread *);
++void thread_mlfqs_update_priority(struct thread *);
++void thread_mlfqs_refresh(void);
++
++bool thread_wakeup_ticks_less(const struct list_elem *,
++                              const struct list_elem *,
++                              void *);
++bool thread_priority_large(const struct list_elem *,
++                           const struct list_elem *,
++                           void *);
++
++
+ #endif /* threads/thread.h */
+diff -urNab pintos/src/utils/pintos-gdb pintos-project-1/src/utils/pintos-gdb
+--- pintos/src/utils/pintos-gdb	2018-04-16 23:50:45.367033877 +0800
++++ pintos-project-1/src/utils/pintos-gdb	2018-04-16 23:51:06.741350637 +0800
+@@ -1,7 +1,7 @@
+ #! /bin/sh
+ 
+ # Path to GDB macros file.  Customize for your site.
+-GDBMACROS=/usr/class/cs140/pintos/pintos/src/misc/gdb-macros
++GDBMACROS=/home/microdog/Projects/pintos/src/misc/gdb-macros
+ 
+ # Choose correct GDB.
+ if command -v i386-elf-gdb >/dev/null 2>&1; then
