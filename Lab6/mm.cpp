@@ -7,10 +7,10 @@ using namespace std;
 #define MIN_SLICE 10 //内碎片最大大小
 #define DEFAULT_MEM_SIZE 1024  //总内存大小
 #define DEFAULT_MEM_START 0  //内存开始分配时的起始地址
-/* 内存分配算法 */  
-#define MA_FF 1  
-#define MA_BF 2  
-#define MA_WF 3 
+/* 内存分配算法 */
+#define MA_FF 1
+#define MA_BF 2
+#define MA_WF 3
 
 typedef pair<int, string> My_algo;
 
@@ -19,7 +19,7 @@ bool flag = 0; //当内存已经被分配了之后，不允许更改总内存大
 static int pid = 0;
 // My_algo algo[123];
 // algo[0] = make_pair(1,"233");
-int algo_type = MA_FF;  
+int algo_type = MA_FF;
 
 struct free_block{	//空闲数据块
 	int size;
@@ -81,7 +81,7 @@ int main(){
 	}
 }
 
-// TODO 
+// TODO
 allocated_block *find_process(int id){ //循环遍历分配块链表，寻找pid=id的进程所对应的块
 	allocated_block *abb = NULL;
 	if (allocated_block_head)
@@ -219,7 +219,7 @@ int create_new_process(){ //创建新进程
 	printf("Memory for %s:", ab->process_name);
 	scanf("%d", &size);
 	getchar();
-	
+
 	if (size <= 0){
 		printf("Memory size is invaild.\n");
 		printf("Allocation fail\n");
@@ -234,7 +234,7 @@ int create_new_process(){ //创建新进程
 		return 1;
 	}
 	else if (1 == ret)
-	{	
+	{
 		tmp = allocated_block_head;
 		while(tmp->next){
 			tmp = tmp->next;
@@ -260,11 +260,11 @@ void swap(int *p, int *q){
 }
 
 /*
-根据当前算法在空闲分区链表中搜索合适空闲分区进行分配，分配时注意以下情况：  
-1. 找到可满足空闲分区且分配后剩余空间足够大，则分割  
-2. 找到可满足空闲分区且但分配后剩余空间（最小碎片化）比较小，则一起分配  
+根据当前算法在空闲分区链表中搜索合适空闲分区进行分配，分配时注意以下情况：
+1. 找到可满足空闲分区且分配后剩余空间足够大，则分割
+2. 找到可满足空闲分区且但分配后剩余空间（最小碎片化）比较小，则一起分配
 3. 每次对连续空闲块合并
-4. 在成功分配内存后，应保持空闲分区按照相应算法有序  
+4. 在成功分配内存后，应保持空闲分区按照相应算法有序
 */
 
 void rearrange_sp(bool (*func)(free_block*, free_block*)){ //将块按照地址大小进行排序
@@ -297,7 +297,7 @@ void rearrange_sp(bool (*func)(free_block*, free_block*)){ //将块按照地址�
 			}
 		}
 		tmp = tmp->next;
-	} 
+	}
 
 	tmp = free_block_head;
 	// 冒泡排序
