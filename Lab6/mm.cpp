@@ -7,18 +7,24 @@ using namespace std;
 #define MIN_SLICE 10 //内碎片最大大小
 #define DEFAULT_MEM_SIZE 1024  //总内存大小
 #define DEFAULT_MEM_START 0  //内存开始分配时的起始地址
+/* 内存分配算法 */  
+#define MA_FF 1  
+#define MA_BF 2  
+#define MA_WF 3 
 
 typedef pair<int, string> My_algo;
 
 int mem_size = DEFAULT_MEM_SIZE;
-bool flag = 0; //当内存以及被分配了之后，不允许更改总内存大小的flag
+bool flag = 0; //当内存已经被分配了之后，不允许更改总内存大小的flag
 static int pid = 0;
-My_algo algo[123];
+// My_algo algo[123];
+// algo[0] = make_pair(1,"233");
+int algo_type = MA_FF;  
 
 struct free_block{	//空闲数据块
 	int size;
 	int start_addr;
-	struct free_block *next;
+	free_block *next;
 };
 
 struct allocated_block{ //已分配的数据块
@@ -27,7 +33,7 @@ struct allocated_block{ //已分配的数据块
 	int start_addr;
 	char process_name[PROCESS_NAME_LEN];
 	int *data;
-	struct allocated_block *next;
+	allocated_block *next;
 };
 
 free_block *free_block_head; //空闲数据块首指针
@@ -38,14 +44,19 @@ free_block *init_free_block(int mem_size); //空闲块初始化
 void display_menu(); //显示选项菜单
 void set_mem_size(); //设置内存大小
 int allocate_mem(allocated_block *ab); //为制定块分配内存
-void rearrange(); // 对块进行重新分配
 int create_new_process(); //创建新的进程
-int free_mem(allocated_block *ab); //释放分配块
 void swap(int *p, int *q); //交换地址
+void rearrange_sp(bool (*func)(free_block, free_block)); // 对块进行重新分配
+void rearrange();
+int free_mem(allocated_block *ab); //释放分配块
 int dispose(allocated_block *ab); //释放分配块结构体
 void display_mem_usage(); //显示内存情况
 void kill_process(); //杀死对应进程并释放其空间与结构体
+void set_algo();
 void Usemy_algo(int id); //使用对应的分配算法
+bool is_small_addr(free_block *p, free_block *q);
+bool is_small_size(free_block *p, free_block *q);
+bool is_large_size(free_block *p, free_block *q);
 
 //主函数
 int main(){
@@ -57,9 +68,10 @@ int main(){
 		display_menu();
 		fflush(stdin);
 		scanf("%d", &op);
+		getchar();
 		switch (op){
 			case 1:{ set_mem_size(); break; }
-			case 2:{ puts("No algorithm now!"); break; }
+			case 2:{ set_algo(); break; }
 			case 3:{ create_new_process(); break; }
 			case 4:{ kill_process(); break; }
 			case 5:{ display_mem_usage(); break; }
@@ -69,7 +81,15 @@ int main(){
 	}
 }
 
+// TODO 
 allocated_block *find_process(int id){ //循环遍历分配块链表，寻找pid=id的进程所对应的块
+	allocated_block *abb = NULL;
+	if (allocated_block_head)
+	{
+		for (abb = allocated_block_head->next; abb && abb->pid != pid; abb = abb->next)
+			;
+	}
+	return abb;
 }
 
 free_block *init_free_block(int mem_size){ //初始化空闲块，这里的mem_size表示允许的最大虚拟内存大小
@@ -95,13 +115,141 @@ void display_menu(){
 	printf("233) Exit\n");
 }
 
+// TODO
 void set_mem_size(){ //更改最大内存大小
+	int size;
+	if (flag != false)
+	{ //防止重复设置
+		printf("Cannot set memory size again.\n");
+		return;
+	}
+	printf("Total memory size =");
+	scanf("%d", &size);
+	getchar();
+	if (size > 0)
+	{
+		mem_size = size;
+		free_block_head->size = mem_size;
+	}
+	flag = true;
 }
 
+// TODO
 int allocate_mem(allocated_block *ab){ //为块分配内存，真正的操作系统会在这里进行置换等操作
+	free_block *p = NULL;
+	free_block *q = NULL;
+	free_block *temp = NULL;
+	int sum = 0;
+	if (free_block_head == NULL)
+	{
+		printf("no  memory");
+		return -1;
+	}
+	rearrange();
+	if (algo_type == MA_FF || algo_type == MA_BF)
+	{
+		p = free_block_head;
+		while (p != NULL)
+		{
+			if (p->size >= ab->size)
+			{
+				q = p;
+				break;
+			}
+			p = p->next;
+		}
+		if (q)
+		{
+			if ((q->size - ab->size) <= MIN_SLICE)
+			{
+				ab->start_addr = q->start_addr;
+				ab->size = q->size;
+				p->next = q->next;
+				free(q);
+			}
+			else
+			{
+				ab->start_addr = q->start_addr;
+				q->start_addr = q->start_addr + ab->size;
+				q->size = q->size - ab->size;
+			}
+		}
+		else
+			return -1;
+	}
+	else if (algo_type == MA_WF)
+	{
+		q = free_block_head;
+		if (q && q->size >= ab->size)
+		{
+			if ((q->size - ab->size) <= MIN_SLICE)
+			{
+				ab->start_addr = q->start_addr;
+				ab->size = q->size;
+				p->next = q->next;
+				free(q);
+			}
+			else
+			{
+				ab->start_addr = q->start_addr;
+				q->start_addr = q->start_addr + ab->size;
+				q->size = q->size - ab->size;
+			}
+		}
+		else
+			return -1;
+	}
+	return 1;
 }
 
+// TODO
 int create_new_process(){ //创建新进程
+	flag = true;
+	allocated_block *ab;
+	allocated_block *tmp;
+	int size;
+	int ret;
+	ab = (allocated_block *)malloc(sizeof(allocated_block));
+	if (!ab)
+		exit(-5);
+	ab->next = NULL;
+	pid++;
+	sprintf(ab->process_name, "PROCESS-%02d", pid);
+	ab->pid = pid;
+	printf("Memory for %s:", ab->process_name);
+	scanf("%d", &size);
+	getchar();
+	
+	if (size <= 0){
+		printf("Memory size is invaild.\n");
+		printf("Allocation fail\n");
+		free(ab);
+		return -2;
+	}
+	ab->size = size;
+	ret = allocate_mem(ab); // 从空闲区分配内存，ret==1表示分配ok
+	if ((1 == ret) && (allocated_block_head == NULL))
+	{
+		allocated_block_head = ab;
+		return 1;
+	}
+	else if (1 == ret)
+	{	
+		tmp = allocated_block_head;
+		while(tmp->next){
+			tmp = tmp->next;
+		}
+		tmp->next = ab;
+		return 2;
+	}
+	else if (ret == -1)
+	{
+		// 分配不成功
+		printf("Allocation fail\n");
+		free(ab);
+		return -1;
+	}
+	return 3;
 }
 
 void swap(int *p, int *q){
@@ -111,15 +259,53 @@ void swap(int *p, int *q){
 	return;
 }
 
-void rearrange(){ //将块按照地址大小进行排序
+/*
+根据当前算法在空闲分区链表中搜索合适空闲分区进行分配，分配时注意以下情况：  
+1. 找到可满足空闲分区且分配后剩余空间足够大，则分割  
+2. 找到可满足空闲分区且但分配后剩余空间（最小碎片化）比较小，则一起分配  
+3. 每次对连续空闲块合并
+4. 在成功分配内存后，应保持空闲分区按照相应算法有序  
+*/
+
+void rearrange_sp(bool (*func)(free_block*, free_block*)){ //将块按照地址大小进行排序
 	free_block *tmp, *tmpx;
 	puts("Rearrange begins...");
 	puts("Rearrange by address...");
 	tmp = free_block_head;
+	// 冒泡排序
 	while(tmp != NULL){
 		tmpx = tmp->next;
 		while (tmpx != NULL){
-			if (tmpx->start_addr < tmp->start_addr){
+			if (is_small_addr(tmpx, tmp)){
+				// 根据以上条件排序
+				swap(&tmp->start_addr, &tmpx->start_addr);
+				swap(&tmp->size, &tmpx->size);
+			}
+			tmpx = tmpx->next;
+		}
+		tmp = tmp->next;
+	}
+	// 合并相邻的空闲块
+	tmp = free_block_head;
+	while(tmp != NULL){
+		tmpx = tmp->next;
+		if (tmpx){
+			if (tmp->start_addr+tmp->size==tmpx->start_addr){
+				tmp->size = tmp->size + tmpx->size;
+				tmp->next = tmpx->next;
+				free(tmpx);
+			}
+		}
+		tmp = tmp->next;
+	} 
+
+	tmp = free_block_head;
+	// 冒泡排序
+	while(tmp != NULL){
+		tmpx = tmp->next;
+		while (tmpx != NULL){
+			if (func(tmpx, tmp)){
+				// 根据以上条件排序
 				swap(&tmp->start_addr, &tmpx->start_addr);
 				swap(&tmp->size, &tmpx->size);
 			}
@@ -131,8 +317,29 @@ void rearrange(){ //将块按照地址大小进行排序
 	puts("Rearrange Done.");
 }
 
+void rearrange(){
+	switch(algo_type){
+		case MA_FF:
+			rearrange_sp(is_small_addr);
+			break;
+		case MA_BF:
+			rearrange_sp(is_small_size);
+			break;
+		case MA_WF:
+			rearrange_sp(is_large_size);
+			break;
+	}
+}
 
+// TODO
 int free_mem(allocated_block *ab){ //释放某一块的内存
+	free_block *p;
+	p = (free_block *)malloc(sizeof(free_block));
+	p->next = free_block_head->next; //将 p 插入 free_block 头
+	free_block_head->next = p;
+	p->size = ab->size;
+	p->start_addr = ab->start_addr;
+	return 1;
 }
 
 int dispose(allocated_block *fab){ //释放结构体所占的内存
@@ -178,16 +385,53 @@ void display_mem_usage(){
 }
 
 void kill_process(){ //杀死某个进程
+	display_mem_usage();
 	allocated_block *ab;
 	int pid;
 	puts("Please input the pid of Killed process");
 	scanf("%d", &pid);
+	getchar();
 	ab = find_process(pid);
 	if (ab != NULL){
 		free_mem(ab);
 		dispose(ab);
+	}else{
+		cout << "pid: " << pid << " don't exist." << endl;
 	}
 }
 
+void set_algo(){
+	cout << "\t1) First Fit" << endl;
+	cout << "\t2) Best Fit" << endl;
+	cout << "\t3) Worst Fit" << endl;
+	int choice;
+	scanf("%d", &choice);
+	getchar();
+	Usemy_algo(choice);
+}
 
+void Usemy_algo(int id){
+	flag = true;
+	algo_type = id;
+}
 
+bool is_small_addr(free_block *p, free_block *q){
+	if (p->start_addr < q->start_addr)
+		return true;
+	else
+		return false;
+}
+
+bool is_small_size(free_block *p, free_block *q){
+	if (p->size < q->size)
+		return true;
+	else
+		return false;
+}
+
+bool is_large_size(free_block *p, free_block *q){
+	if (p->size > q->size)
+		return true;
+	else
+		return false;
+}
