@@ -60,15 +60,18 @@ bool is_large_size(free_block *p, free_block *q);
 
 //主函数
 int main(){
-	int op;
+	int op = 0;
 	pid = 0;
 	free_block_head = init_free_block(mem_size); //初始化一个可以使用的内存块，类似与操作系统可用的总存储空间
 	for(;;){
 		sleep(1);
 		display_menu();
+		op = 0;		
+		// cerr << "--" << op << endl;
 		fflush(stdin);
 		scanf("%d", &op);
 		getchar();
+		// cerr << "-+" << op << endl;
 		switch (op){
 			case 1:{ set_mem_size(); break; }
 			case 2:{ set_algo(); break; }
@@ -117,21 +120,25 @@ void display_menu(){
 
 // TODO
 void set_mem_size(){ //更改最大内存大小
-	int size;
+	int size = 0;
 	if (flag != false)
 	{ //防止重复设置
 		printf("Cannot set memory size again.\n");
-		return;
 	}
-	printf("Total memory size =");
-	scanf("%d", &size);
-	getchar();
-	if (size > 0)
-	{
-		mem_size = size;
-		free_block_head->size = mem_size;
+	else{
+		printf("Total memory size =");
+		scanf("%d", &size);
+		getchar();
+		if (size > 0)
+		{
+			mem_size = size;
+			free_block_head->size = mem_size;
+			flag = true;
+		}
+		else{
+			printf("Invalid size.\n");
+		}
 	}
-	flag = true;
 }
 
 // TODO
@@ -207,7 +214,7 @@ int create_new_process(){ //创建新进程
 	flag = true;
 	allocated_block *ab;
 	allocated_block *tmp;
-	int size;
+	int size = 0;
 	int ret;
 	ab = (allocated_block *)malloc(sizeof(allocated_block));
 	if (!ab)
@@ -387,16 +394,24 @@ void display_mem_usage(){
 void kill_process(){ //杀死某个进程
 	display_mem_usage();
 	allocated_block *ab;
-	int pid;
+	int pid = -1;
 	puts("Please input the pid of Killed process");
 	scanf("%d", &pid);
 	getchar();
-	ab = find_process(pid);
-	if (ab != NULL){
-		free_mem(ab);
-		dispose(ab);
-	}else{
-		cout << "pid: " << pid << " don't exist." << endl;
+	if (pid < 0)
+		cout << "Invalid pid." << endl;
+	else
+	{
+		ab = find_process(pid);
+		if (ab != NULL)
+		{
+			free_mem(ab);
+			dispose(ab);
+		}
+		else
+		{
+			cout << "pid: " << pid << " don't exist." << endl;
+		}
 	}
 }
 
@@ -404,10 +419,13 @@ void set_algo(){
 	cout << "\t1) First Fit" << endl;
 	cout << "\t2) Best Fit" << endl;
 	cout << "\t3) Worst Fit" << endl;
-	int choice;
+	int choice = -1;
 	scanf("%d", &choice);
 	getchar();
-	Usemy_algo(choice);
+	if (choice < 0)
+		cout << "Invalid choice." << endl;
+	else
+		Usemy_algo(choice);
 }
 
 void Usemy_algo(int id){
