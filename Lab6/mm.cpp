@@ -87,10 +87,16 @@ int main(){
 // TODO
 allocated_block *find_process(int id){ //循环遍历分配块链表，寻找pid=id的进程所对应的块
 	allocated_block *abb = NULL;
-	if (allocated_block_head)
+	allocated_block *tmp = allocated_block_head;
+	while (tmp)
 	{
-		for (abb = allocated_block_head->next; abb && abb->pid != pid; abb = abb->next)
-			;
+		if (tmp->pid == id)
+		{
+			abb = tmp;
+			break;
+		}
+		else
+			tmp = tmp->next;
 	}
 	return abb;
 }
@@ -149,21 +155,23 @@ int allocate_mem(allocated_block *ab){ //为块分配内存，真正的操作系
 	int sum = 0;
 	if (free_block_head == NULL)
 	{
-		printf("no  memory");
+		printf("no  memory\n");
 		return -1;
 	}
 	rearrange();
 	if (algo_type == MA_FF || algo_type == MA_BF)
 	{
-		p = free_block_head;
-		while (p != NULL)
+		temp = free_block_head;
+		p = NULL;
+		while (temp != NULL)
 		{
-			if (p->size >= ab->size)
+			if (temp->size >= ab->size)
 			{
-				q = p;
+				q = temp;
 				break;
 			}
-			p = p->next;
+			p = temp;
+			temp = temp->next;
 		}
 		if (q)
 		{
@@ -171,7 +179,14 @@ int allocate_mem(allocated_block *ab){ //为块分配内存，真正的操作系
 			{
 				ab->start_addr = q->start_addr;
 				ab->size = q->size;
-				p->next = q->next;
+				if (q == free_block_head)
+				{
+					free_block_head = free_block_head->next;
+				}
+				else
+				{
+					p->next = q->next;
+				}
 				free(q);
 			}
 			else
@@ -193,7 +208,7 @@ int allocate_mem(allocated_block *ab){ //为块分配内存，真正的操作系
 			{
 				ab->start_addr = q->start_addr;
 				ab->size = q->size;
-				p->next = q->next;
+				free_block_head = free_block_head->next;
 				free(q);
 			}
 			else
@@ -342,8 +357,15 @@ void rearrange(){
 int free_mem(allocated_block *ab){ //释放某一块的内存
 	free_block *p;
 	p = (free_block *)malloc(sizeof(free_block));
-	p->next = free_block_head->next; //将 p 插入 free_block 头
-	free_block_head->next = p;
+	if (free_block_head)
+	{
+		p->next = free_block_head->next; //将 p 插入 free_block 头
+		free_block_head->next = p;
+	}
+	else
+	{
+		free_block_head = p;
+	}
 	p->size = ab->size;
 	p->start_addr = ab->start_addr;
 	return 1;
