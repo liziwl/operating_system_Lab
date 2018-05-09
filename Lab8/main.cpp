@@ -46,14 +46,19 @@ int main()
 {
     init();
     set_cache_size();
-    // set_algorithm();
+    set_algorithm();
     read_pages();
-    int i = 0;
-    for (i = 0; i<5;i++){
-      working_algorithm=i;
-      run_algorithm();
-    }
-    // run_algorithm();
+    run_algorithm();
+
+    // for batch test
+    // init();
+    // set_cache_size();
+    // read_pages();
+    // int i = 0;
+    // for (i = 0; i<5;i++){
+    //   working_algorithm=i;
+    //   run_algorithm();
+    // }
     return 0;
 }
 
