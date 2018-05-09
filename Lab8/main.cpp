@@ -15,7 +15,7 @@ int dcmp(const double &x)
 
 #define DEFAULT_CACHE_SIZE 1024
 #define DEFAULT_ALGORITHM 0
-#define SLEEP_TIME 1
+// #define SLEEP_TIME 1
 
 typedef pair<int, string> _algorithm;
 
@@ -30,119 +30,31 @@ struct Page_item
 };
 
 void init();
-void print_menu();
-void set_cache_size();
-void print_algorithms();
-void set_algorithm();
-void add_an_algorithm();
-void generate_input();
-void generate_randomly(int n);
-void generate_by_hand(int n);
-void print_pages();
-void run_algorithm();
 void read_pages();
+void set_cache_size();
+void set_algorithm();
 void FIFO_algorithm();
 void LRU_algorithm();
 void MIN_algorithm();
 void CLOCK_algorithm();
 int in_ref(const int array[], int size, int start, int page_num);
 void SC_algorithm();
+void print_status();
+void run_algorithm();
 
 int main()
 {
-    //freopen("1.in", "r", stdin);
     init();
-    //generate_input();
-    //return 0;
-    int op;
-    while (true)
-    {
-        op = 0;
-        print_menu();
-        cin >> op;
-        switch (op)
-        {
-        case 1:
-            set_cache_size();
-            break;
-        case 2:
-            set_algorithm();
-            break;
-        case 3:
-            add_an_algorithm();
-            break;
-        case 4:
-            run_algorithm();
-            break;
-        case 5:
-            read_pages();
-            break;
-        case 233:
-            cout << "Bye..." << endl;
-            sleep(SLEEP_TIME);
-            return 0;
-        default:
-            break;
-        }
-        sleep(SLEEP_TIME);
+    set_cache_size();
+    // set_algorithm();
+    read_pages();
+    int i = 0;
+    for (i = 0; i<5;i++){
+      working_algorithm=i;
+      run_algorithm();
     }
-}
-
-void print_pages()
-{
-    cout << "pages number is: ";
-    cout << pages.size() << endl;
-    cout << "pages are: ";
-    for (auto &x : pages)
-    {
-        cout << x << " ";
-    }
-    cout << endl;
-}
-
-void generate_randomly(int n)
-{
-    cout << n << endl;
-    for (int i = 0; i < n; i++)
-    {
-        cout << rand() * 233 % cache_size << " ";
-    }
-    cout << endl;
-}
-
-void generate_by_hand(int n)
-{
-    cout << n << endl;
-    for (int i = 0; i < n; i++)
-    {
-        int x;
-        cin >> x;
-        cout << x << " ";
-    }
-    cout << endl;
-}
-
-void generate_input()
-{
-    pages.clear();
-    cout << "Please input the number of pages: ";
-    int n, op;
-    cin >> n;
-    cout << "1) Generate randomly" << endl;
-    cout << "2) Generate by hand" << endl;
-    cin >> op;
-    freopen("1.in", "w", stdout);
-    switch (op)
-    {
-    case 1:
-        generate_randomly(n);
-        break;
-    case 2:
-        generate_by_hand(n);
-        break;
-    default:
-        break;
-    }
+    // run_algorithm();
+    return 0;
 }
 
 void init()
@@ -150,10 +62,10 @@ void init()
     srand((unsigned int)time(0));
     algorithms.clear();
     pages.clear();
-    cout << "Setting the default cache size..." << endl;
+    // cout << "Setting the default cache size..." << endl;
     cache_size = DEFAULT_CACHE_SIZE;
-    sleep(SLEEP_TIME);
-    cout << "Setting the default algorithm..." << endl;
+    // sleep(SLEEP_TIME);
+    // cout << "Setting the default algorithm..." << endl;
 
     string s = "FIFO";
     algorithms.push_back(make_pair(DEFAULT_ALGORITHM, s));
@@ -171,10 +83,10 @@ void init()
     algorithms.push_back(make_pair(DEFAULT_ALGORITHM + 4, s));
 
     working_algorithm = 0;
-    sleep(SLEEP_TIME);
-    cout << "Setting the environment..." << endl;
-    sleep(SLEEP_TIME);
-    cout << "Setting successfully" << endl;
+    // sleep(SLEEP_TIME);
+    // cout << "Setting the environment..." << endl;
+    // sleep(SLEEP_TIME);
+    // cout << "Setting successfully" << endl;
 }
 
 void read_pages()
@@ -188,23 +100,12 @@ void read_pages()
         cin >> x;
         pages.push_back(x);
     }
-    cout << "Read successfully" << endl;
-}
-
-void print_menu()
-{
-    cout << "**********MENU**********" << endl;
-    cout << "1) set cache size" << endl;
-    cout << "2) set algorithm" << endl;
-    cout << "3) add an algorithm" << endl;
-    cout << "4) run algorithm" << endl;
-    cout << "5) read pages" << endl;
-    cout << "233) quit" << endl;
+    // cout << "Read successfully" << endl;
 }
 
 void set_cache_size()
 {
-    cout << "Please input the new cache size: ";
+    // cout << "Please input the new cache size: ";
     int x;
     cin >> x;
     if (x <= 0)
@@ -213,22 +114,12 @@ void set_cache_size()
         return;
     }
     cache_size = x;
-    cout << "set cache size successfully, new cache size is: " << cache_size << endl;
-}
-
-void print_algorithms()
-{
-    cout << "All algorithms are: " << endl;
-    for (auto &x : algorithms)
-    {
-        cout << x.first << " : " << x.second << endl;
-    }
+    // cout << "set cache size successfully, new cache size is: " << cache_size << endl;
 }
 
 void set_algorithm()
 {
-    print_algorithms();
-    cout << "Please input the index of algorithm" << endl;
+    // cout << "Please input the index of algorithm" << endl;
     unsigned int id;
     cin >> id;
     if (id >= algorithms.size())
@@ -237,18 +128,8 @@ void set_algorithm()
         return;
     }
     working_algorithm = id;
-    cout << "Set algorithm successfully" << endl;
-    cout << "Now working algorithm is: " << algorithms[id].first << ":" << algorithms[id].second << endl;
-}
-
-void add_an_algorithm()
-{
-    cout << "Please input the name of new algorithm: ";
-    string algo;
-    cin >> algo;
-    algorithms.push_back(make_pair(algorithms.size(), algo));
-    cout << "Algorithm added!" << endl;
-    print_algorithms();
+    // cout << "Set algorithm successfully" << endl;
+    // cout << "Now working algorithm is: " << algorithms[id].first << ":" << algorithms[id].second << endl;
 }
 
 void FIFO_algorithm()
@@ -528,13 +409,12 @@ void SC_algorithm()
 
 void print_status()
 {
-    cout << "cache size is: " << cache_size << endl;
-    //print_pages();
-    cout << "working algorithm is " << working_algorithm << ":" << algorithms[working_algorithm].second << endl;
-    cout << "hit times = " << hit << endl
-         << "miss times = " << miss << endl;
-    printf("Hit ratio = %.2f%%\n",(double)hit * 100 / (miss + hit));
+    // cout << "cache size is: " << cache_size << endl;
+    // cout << "working algorithm is " << working_algorithm << ":" << algorithms[working_algorithm].second << endl;
+    // cout << "hit times = " << hit << endl
+    // << "miss times = " << miss << endl;
     // cout << "hit percentage is " << (double)hit * 100 / (miss + hit) << "%" << endl;
+    printf("Hit ratio = %.2f%%\n", (double)hit * 100 / (miss + hit));
 }
 
 void run_algorithm()
