@@ -288,81 +288,6 @@ void MIN_algorithm()
     }
 }
 
-// void CLOCK_algorithm()
-// {
-//     hit = miss = 0;
-//     int ref[cache_size];
-//     int valid[cache_size];
-//     int pointer = 0;
-//     int i, j, tmp;
-//     int full = 0;
-//     // init array
-//     for (i = 0; i < cache_size; i++)
-//     {
-//         ref[i] = -1;
-//         valid[i] = 0;
-//     }
-
-//     for (auto &x : pages)
-//     {
-//         tmp = pointer;
-//         i = in_ref(ref, cache_size, tmp, x);
-//         if (i != -1)
-//         {
-//             // page x is already in the cache
-//             valid[i] = 1;
-//             // pointer = i;
-//             hit++;
-//             // pointer = (++pointer) % cache_size;
-//         }
-//         else
-//         {
-//             // page x is not in the cache
-//             miss++;
-//             if (full < cache_size)
-//             {
-//                 assert(ref[full] == -1);
-//                 ref[full] = x;
-//                 valid[full] = 0;
-//                 full++;
-//                 pointer = full % cache_size;
-//             }
-//             else
-//             {
-//                 while (true)
-//                 {
-//                     if (valid[tmp] == 0)
-//                     {
-//                         ref[tmp] = x;
-//                         tmp = (++tmp) % cache_size;
-//                         break;
-//                     }
-//                     else
-//                     {
-//                         valid[tmp] = 0;
-//                     }
-//                     tmp = (++tmp) % cache_size;
-//                 }
-//                 // for (j = 0; j < cache_size; j++)
-//                 // {
-//                 //     if (valid[tmp] == 0)
-//                 //     {
-//                 //         ref[tmp] = x;
-//                 //         tmp = (++tmp) % cache_size;
-//                 //         break;
-//                 //     }
-//                 //     else
-//                 //     {
-//                 //         valid[tmp] = 0;
-//                 //     }
-//                 //     tmp = (++tmp) % cache_size;
-//                 // }
-//                 pointer = tmp;
-//             }
-//         }
-//     }
-// }
-
 void CLOCK_algorithm()
 {
     hit = miss = 0;
@@ -380,12 +305,6 @@ void CLOCK_algorithm()
 
     for (auto &x : pages)
     {
-        // cerr << "list:";
-        // for (i = 0; i < cache_size; i++)
-        // {
-        //     cerr << ref[i] << " ";
-        // }
-        // cerr << endl;
         tmp = pointer;
         i = in_ref(ref, cache_size, tmp, x);
         if (i != -1)
