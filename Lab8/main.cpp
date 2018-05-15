@@ -400,6 +400,7 @@ void CLOCK_algorithm()
         {
             // page x is not in the cache
             miss++;
+            // cerr << "miss\n";
             if (full < cache_size)
             {
                 assert(ref[full] == -1);
@@ -410,11 +411,13 @@ void CLOCK_algorithm()
             }
             else
             {
+                // cerr << "el" << pointer << "\n";
                 while (true)
                 {
                     if (valid[tmp] == 0)
                     {
                         ref[tmp] = x;
+                        valid[tmp] = 1;
                         tmp = (++tmp) % cache_size;
                         break;
                     }

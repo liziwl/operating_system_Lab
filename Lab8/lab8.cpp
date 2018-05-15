@@ -334,6 +334,7 @@ void CLOCK_algorithm()
                     if (valid[tmp] == 0)
                     {
                         ref[tmp] = x;
+                        valid[tmp] = 1;
                         tmp = (++tmp) % cache_size;
                         break;
                     }
