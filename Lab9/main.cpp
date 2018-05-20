@@ -8,6 +8,7 @@
 // S 表示开始磁道的位置,M 表示当前磁盘可以容纳的最大磁道数,N 表示需要访问的磁道数。
 // 第二行包含 N 个整数表示需要访问的磁道的编号。
 // FCFS, SSTF, SCAN, C-SCAN, LOOK, CLOOK
+#define DEFAULT_DIRECTION -1
 
 /*
 输入样例
@@ -158,7 +159,8 @@ void SCAN()
     vector<int> tem(query);
     tem.push_back(s);
     sort(tem.begin(), tem.end());
-    int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    // int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    int direction = DEFAULT_DIRECTION;
     int p = -1;
     // init p
     for (i = 0; i < n + 1; i++)
@@ -172,6 +174,11 @@ void SCAN()
     int q = p;
     p--;
     q++;
+    while (tem[q] == s)
+    {
+        cout << " -> " << tem[q];
+        q++;
+    }
     if (-1 == direction)
     {
         while (p >= 0)
@@ -225,7 +232,8 @@ void CSCAN()
     vector<int> tem(query);
     tem.push_back(s);
     sort(tem.begin(), tem.end());
-    int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    // int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    int direction = DEFAULT_DIRECTION;
     int p = -1;
     // init p
     for (i = 0; i < n + 1; i++)
@@ -239,6 +247,11 @@ void CSCAN()
     int q = p;
     p--;
     q++;
+    while (tem[q] == s)
+    {
+        cout << " -> " << tem[q];
+        q++;
+    }
     if (-1 == direction)
     {
         while (p >= 0)
@@ -294,7 +307,8 @@ void LOOK()
     vector<int> tem(query);
     tem.push_back(s);
     sort(tem.begin(), tem.end());
-    int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    // int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    int direction = DEFAULT_DIRECTION;
     int p = -1;
     // init p
     for (i = 0; i < n + 1; i++)
@@ -308,6 +322,11 @@ void LOOK()
     int q = p;
     p--;
     q++;
+    while (tem[q] == s)
+    {
+        cout << " -> " << tem[q];
+        q++;
+    }
     if (-1 == direction)
     {
         while (p >= 0)
@@ -355,7 +374,8 @@ void CLOOK()
     vector<int> tem(query);
     tem.push_back(s);
     sort(tem.begin(), tem.end());
-    int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    // int direction = abs(s - 0) <= abs(s - (m - 1)) ? -1 : 1;
+    int direction = DEFAULT_DIRECTION;
     int p = -1;
     // init p
     for (i = 0; i < n + 1; i++)
@@ -369,6 +389,11 @@ void CLOOK()
     int q = p;
     p--;
     q++;
+    while (tem[q] == s)
+    {
+        cout << " -> " << tem[q];
+        q++;
+    }
     if (-1 == direction)
     {
         while (p >= 0)
