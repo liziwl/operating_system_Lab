@@ -321,7 +321,7 @@ struct fname
      printf("**Write file(write)\n");
      printf("**Show file directory(printufd)\n");
      printf("**Show opened file directory(dir)\n");
-     printf("**Exit(exit)");
+     printf("**Exit(exit)\n");
 
      lgin:printf("Please enter user name:");
      scanf("%s", login);
