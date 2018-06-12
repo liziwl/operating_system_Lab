@@ -914,7 +914,7 @@ Dir *set_path(Dir *path)
 
 int permission_check(File *f, int mode)
 {
-    return f->mode && mode;
+    return f->mode & mode;
 }
 
 void init()
